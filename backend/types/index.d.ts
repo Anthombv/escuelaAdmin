@@ -61,7 +61,7 @@ export interface Period {
 
 export type Tuition = {
   id?: string;
-  number: number
+  number: number;
   student: Student;
   period: Period;
   course: Course;
@@ -105,9 +105,12 @@ export type Grade = {
   id?: string;
   student: Student;
   subject: Subject;
+  course: Course;
   grade: number;
   period: Period;
   teacher: Teacher;
+  term: string;
+  description: string;
 };
 
 //backups
@@ -119,6 +122,7 @@ export type Backup = {
   paralelos: any | Parallel;
   periodos: any | Period;
   matriculas: any | Tuition;
+  calificaciones: any | Grade;
 };
 
 export type Auditory = {

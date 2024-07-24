@@ -4,6 +4,7 @@ import {
   Backup,
   CloudImage,
   Course,
+  Grade,
   Parallel,
   Period,
   Student,
@@ -159,7 +160,7 @@ export const ParallelModel =
 
 //Matriculas
 const TiutionSchema = new mongoose.Schema<Tuition>({
-  number: {type: Number},
+  number: { type: Number },
   student: { type: StudentSchema },
   period: { type: PeriodosSchema },
   course: { type: CourseSchema },
@@ -178,6 +179,32 @@ TiutionSchema.set("toJSON", {
 
 export const TiutionSModel =
   mongoose.models.Matriculas || mongoose.model("Matriculas", TiutionSchema);
+
+//Calificaciones
+const GradeSchema = new mongoose.Schema<Grade>({
+  student: { type: StudentSchema },
+  period: { type: PeriodosSchema },
+  grade: { type: Number },
+  subject: { type: MateriasSchema },
+  teacher: { type: TeacherSchema },
+  course: {type: CourseSchema},
+  term: { type: String },
+  description: { type: String },
+});
+
+// Duplicate the ID field.
+GradeSchema.virtual("id").get(function () {
+  return this._id.toHexString();
+});
+
+// Ensure virtual fields are serialised.
+GradeSchema.set("toJSON", {
+  virtuals: true,
+});
+
+export const GradeModel =
+  mongoose.models.Calificaciones ||
+  mongoose.model("Calificaciones", GradeSchema);
 
 //Backup Students
 const BackupStudentsSchema = new mongoose.Schema<Backup>(
@@ -228,6 +255,31 @@ BackupCursosSchema.set("toJSON", {
 export const BackupCursosModel =
   mongoose.models.BackupsCursos ||
   mongoose.model("BackupsCursos", BackupCursosSchema);
+
+  //Backup calificaciones
+const BackupCalificacionesSchema = new mongoose.Schema<Backup>(
+  {
+    calificaciones: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "calificaciones",
+    },
+  },
+  { timestamps: true }
+);
+
+// Duplicate the ID field.
+BackupCalificacionesSchema.virtual("id").get(function () {
+  return this._id.toHexString();
+});
+
+// Ensure virtual fields are serialised.
+BackupCalificacionesSchema.set("toJSON", {
+  virtuals: true,
+});
+
+export const BackupCalificacionesModel =
+  mongoose.models.BackupsCalificaciones ||
+  mongoose.model("BackupsCalificaciones", BackupCalificacionesSchema);
 
 //Backup Paralelos
 const BackupParalelosSchema = new mongoose.Schema<Backup>(
