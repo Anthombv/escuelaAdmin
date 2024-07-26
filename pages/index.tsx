@@ -37,6 +37,39 @@ interface IModalData {
   term?: string;
 }
 
+interface Profesor {
+  nombre: string;
+  apellido: string;
+  fechaNacimiento: string;
+  genero: string;
+  direccion: string;
+  telefono: string;
+  email: string;
+  _id: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+  id: string;
+}
+
+interface Subject {
+  nombre: string;
+  estado: string;
+  profesor: Profesor[];
+  _id: string;
+  __v: number;
+  id: string;
+  horario?: string; // Añadido opcionalmente
+}
+
+interface Course {
+  courseName: string;
+  periodName: string;
+  parallelName: string;
+  students: string[];
+  subjects: Subject[];
+}
+
 export default function Home() {
   const { auth } = useAuth();
   const [consolidatedData, setConsolidatedData] = useState([]);
@@ -44,9 +77,21 @@ export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState<IModalData | null>(null);
 
+  const assignTimeSlots = (data: Course[]) => {
+    const slots = ["08:00 AM", "09:00 AM", "10:00 AM"];
+    data.forEach((item, index) => {
+      item.subjects.forEach((subject) => {
+        if (index < slots.length) {
+          subject.horario = slots[index];
+        }
+      });
+    });
+    return data;
+  };
+
   const loadData = async () => {
     const userDataString = localStorage.getItem("userData");
-    let teacherEmail = null;
+    let teacherEmail: string | null = null;
 
     if (userDataString) {
       const userData = JSON.parse(userDataString);
@@ -65,10 +110,10 @@ export default function Home() {
       auth.role
     );
     if (response.success) {
-      const tuitionData = response.data;
+      const tuitionData: any[] = response.data;
 
       // Filtrar y agrupar datos
-      const groupedData = {};
+      const groupedData: { [key: string]: Course } = {};
       tuitionData.forEach((tuition) => {
         const { course, period, parallel } = tuition;
         const courseId = course._id;
@@ -82,8 +127,8 @@ export default function Home() {
             periodName: period.nombre,
             parallelName: parallel.name,
             students: [],
-            subjects: course.subjects.filter((subject) =>
-              subject.profesor.some((prof) => prof.email === teacherEmail)
+            subjects: course.subjects.filter((subject: any) =>
+              subject.profesor.some((prof: any) => prof.email === teacherEmail)
             ),
           };
         }
@@ -96,9 +141,13 @@ export default function Home() {
       });
 
       // Convertir el objeto a un array para el estado
-      const results = Object.values(groupedData);
-      setConsolidatedData(results);
-      console.log(results);
+      const results: Course[] = Object.values(groupedData);
+
+      // Asignar horarios
+      const updatedData = assignTimeSlots(results);
+
+      setConsolidatedData(updatedData);
+      console.log(updatedData);
     } else {
       console.error("Error fetching data");
     }
@@ -158,7 +207,7 @@ export default function Home() {
           apellido: modalData.teacher.apellido,
           // Asegúrate de incluir todos los campos necesarios aquí
         },
-        course: {nombre: consolidatedData[0]?.courseName},
+        course: { nombre: consolidatedData[0]?.courseName },
         period: { nombre: consolidatedData[0]?.periodName }, // Si esto también debe ser un objeto, ajusta según sea necesario
         grade: modalData.grade,
         description: modalData.description,
@@ -230,7 +279,7 @@ export default function Home() {
                         key={index}
                       >
                         <h2 className="text-center font-semibold mb-2">
-                          {data.courseName}
+                          {data.courseName} - Paralelo {data.parallelName}
                         </h2>
                         <div>
                           {data.subjects.map((subject) => (
@@ -246,6 +295,7 @@ export default function Home() {
                                   <span className="font-semibold">
                                     Horario:
                                   </span>{" "}
+                                  {subject.horario}
                                 </p>
                               </div>
                               <div className="grid  grid-cols-2">
@@ -258,7 +308,7 @@ export default function Home() {
                                 {data.students.map((student, index) => (
                                   <li
                                     key={index}
-                                    className="grid grid-cols-4 gap-4"
+                                    className="grid grid-cols-4 gap-4 py-2"
                                   >
                                     {student}
 
