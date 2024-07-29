@@ -53,9 +53,13 @@ const PeriodPage = () => {
       caption: "Nombre del periodo",
     },
     {
-        dataField: "año",
+      dataField: "año",
       caption: "Año del periodo",
-    }
+    },
+    {
+      dataField: "status",
+      caption: "Estado del periodo",
+    },
   ];
 
   const buttons = {

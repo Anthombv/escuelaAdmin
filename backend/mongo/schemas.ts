@@ -123,6 +123,7 @@ export const CourseSModel =
 const PeriodosSchema = new mongoose.Schema<Period>({
   nombre: { type: String },
   año: { type: Number },
+  status: {type: String},
 });
 
 // Duplicate the ID field.

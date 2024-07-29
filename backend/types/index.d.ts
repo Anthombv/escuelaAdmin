@@ -57,6 +57,7 @@ export interface Period {
   id?: string;
   nombre: string;
   año: number;
+  status: string
 }
 
 export type Tuition = {

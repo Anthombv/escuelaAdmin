@@ -70,12 +70,19 @@ interface Course {
   subjects: Subject[];
 }
 
+interface GroupedData {
+  [key: string]: Course[];
+}
+
 export default function Home() {
   const { auth } = useAuth();
   const [consolidatedData, setConsolidatedData] = useState([]);
   const [calificaciones, setCalificaciones] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState<IModalData | null>(null);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState([]);
 
   const assignTimeSlots = (data: Course[]) => {
     const slots = ["08:00 AM", "09:00 AM", "10:00 AM"];
@@ -168,6 +175,12 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    loadData();
+    loadCalificaciones();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleOpenModal = (student, subject, teacher) => {
     console.log("Student:", student);
     console.log("Subject:", subject);
@@ -183,12 +196,6 @@ export default function Home() {
     });
     setShowModal(true);
   };
-
-  useEffect(() => {
-    loadData();
-    loadCalificaciones();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -228,6 +235,8 @@ export default function Home() {
         toast.success("Calificación guardada con éxito!");
         setShowModal(false);
         setModalData(null); // Limpia los campos del formulario
+        await loadData();
+        await loadCalificaciones();
       } else {
         toast.error("Error al guardar la calificación: " + response.message);
       }
@@ -237,6 +246,29 @@ export default function Home() {
     }
   };
 
+  const handleOpenGradesModal = (studentName, term) => {
+    const filteredGrades = calificaciones.filter(
+      (grade) => grade.student.nombre === studentName && grade.term === term
+    );
+    setModalContent(filteredGrades);
+    setIsModalOpen(true);
+    console.log(modalContent);
+  };
+
+  const groupByPeriod = (data: Course[]): GroupedData => {
+    const grouped: GroupedData = {};
+    data.forEach((item) => {
+      const period = item.periodName;
+      if (!grouped[period]) {
+        grouped[period] = [];
+      }
+      grouped[period].push(item);
+    });
+    return grouped;
+  };
+
+  const groupedData = groupByPeriod(consolidatedData);
+
   return (
     <>
       <title>Generaciones del futuro</title>
@@ -244,7 +276,7 @@ export default function Home() {
         <div className="md:w-1/6 max-w-none">
           <Sidebar />
         </div>
-        <div className="w-12/12 md:w-5/6 bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400">
+        <div className="w-12/12 md:w-5/6 bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 p-4">
           <div
             className="mt-6 "
             style={{ display: "flex", alignItems: "center" }}
@@ -262,85 +294,119 @@ export default function Home() {
               <strong>Unidad Educativa "Generaciones del futuro"</strong>
             </p>
           </div>
+          {CheckPermissions(auth, [0]) && (
+            <div>
+              <div className="w-11/12 bg-white mx-auto block p-4">
+                <h3 className="text-xl font-semibold text-center">
+                  Reportes por curso y docentes
+                </h3>
+
+                <h3 className="text-xl font-semibold text-center">
+                  Reportes por estudiantes
+                </h3>
+              </div>
+            </div>
+          )}
           {CheckPermissions(auth, [2]) && (
             <div>
-              <div className="w-11/12 bg-white mx-auto block px-5 py-3">
-                <h2 className="text-center text-2xl my-3 font-bold">
-                  {consolidatedData[0]?.periodName}
-                </h2>
-                <div>
-                  <h3 className="text-xl font-semibold">Listado de cursos</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {consolidatedData.length > 0 ? (
-                    consolidatedData?.map((data, index) => (
-                      <div
-                        className="rounded overflow-hidden shadow-lg my-4 p-2 bg-slate-100"
-                        key={index}
-                      >
-                        <h2 className="text-center font-semibold mb-2">
-                          {data.courseName} - Paralelo {data.parallelName}
-                        </h2>
-                        <div>
-                          {data.subjects.map((subject) => (
-                            <>
-                              <div className="flex justify-between">
-                                <p className="mb-2" key={subject._id}>
-                                  <span className="font-semibold">
-                                    Materia:
-                                  </span>{" "}
-                                  {subject.nombre}
-                                </p>
-                                <p>
-                                  <span className="font-semibold">
-                                    Horario:
-                                  </span>{" "}
-                                  {subject.horario}
-                                </p>
-                              </div>
-                              <div className="grid  grid-cols-2">
-                                <h3 className="mb-2 font-semibold">
-                                  Estudiantes Matriculados:
-                                </h3>
-                                <h2>Calificaciones</h2>
-                              </div>
-                              <ul className="list-disc list-inside mb-2">
-                                {data.students.map((student, index) => (
-                                  <li
-                                    key={index}
-                                    className="grid grid-cols-4 gap-4 py-2"
-                                  >
-                                    {student}
-
-                                    <p>Primer bimestre:</p>
-                                    <p>Segundo bimestre:</p>
-                                    <button
-                                      onClick={() =>
-                                        handleOpenModal(
-                                          student,
-                                          subject,
-                                          subject.profesor[0]
-                                        )
-                                      }
-                                      className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                                    >
-                                      Registrar calificación
-                                    </button>
-                                  </li>
-                                ))}
-                              </ul>
-                            </>
-                          ))}
-                        </div>
+              <div className="w-11/12 bg-white mx-auto block p-4">
+                {Object.entries(groupedData).map(
+                  ([periodName, courses], index) => (
+                    <div key={index}>
+                      <h2 className="text-center text-2xl my-3 font-bold">
+                        {periodName}
+                      </h2>
+                      <div>
+                        <h3 className="text-xl font-semibold">
+                          Listado de cursos
+                        </h3>
                       </div>
-                    ))
-                  ) : (
-                    <p>
-                      No hay cursos asignados o la información del docente no
-                      está disponible
-                    </p>
-                  )}
-                </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {courses.map((course, idx) => (
+                          <div
+                            className="rounded overflow-hidden shadow-lg my-4 p-2 bg-slate-100"
+                            key={idx}
+                          >
+                            <h2 className="text-center font-semibold mb-2">
+                              {course.courseName} - Paralelo{" "}
+                              {course.parallelName}
+                            </h2>
+                            {course.subjects.map((subject, subIdx) => (
+                              <div key={subIdx}>
+                                <div className="flex justify-between">
+                                  <p className="mb-2">
+                                    <span className="font-semibold">
+                                      Materia:
+                                    </span>{" "}
+                                    {subject.nombre}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">
+                                      Horario:
+                                    </span>{" "}
+                                    {subject.horario}
+                                  </p>
+                                </div>
+                                <div className="grid grid-cols-2">
+                                  <h3 className="mb-2 font-semibold">
+                                    Estudiantes Matriculados:
+                                  </h3>
+                                  <h2>Calificaciones</h2>
+                                </div>
+                                <ul className="list-disc list-inside mb-2">
+                                  {course.students.map(
+                                    (student, studentIdx) => (
+                                      <li
+                                        key={studentIdx}
+                                        className="grid grid-cols-4 gap-4 py-2"
+                                      >
+                                        {student}
+                                        <button
+                                          onClick={() =>
+                                            handleOpenGradesModal(
+                                              student,
+                                              "Primer Bimestre"
+                                            )
+                                          }
+                                          className="ml-2 bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded"
+                                        >
+                                          1er Bimestre
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleOpenGradesModal(
+                                              student,
+                                              "Segundo Bimestre"
+                                            )
+                                          }
+                                          className="ml-2 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
+                                        >
+                                          2do Bimestre
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            handleOpenModal(
+                                              student,
+                                              subject,
+                                              subject.profesor[0]
+                                            )
+                                          }
+                                          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                        >
+                                          Registrar calificación
+                                        </button>
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           )}
@@ -349,7 +415,7 @@ export default function Home() {
       {showModal && modalData && (
         <div
           className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full"
-          id="my-modal"
+          id="my-modal2"
         >
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3 text-center">
@@ -423,6 +489,40 @@ export default function Home() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full"
+          id="my-modal"
+        >
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <div className="modal-content">
+                <h3 className="text-2xl leading-6 font-medium text-gray-900">
+                  Calificaciones {modalContent[0]?.term}
+                </h3>
+                <ul>
+                  {modalContent.map((grade, index) => (
+                    <>
+                      <li key={index} className="text-xl p-4 grid">
+                        <p>Materia: {grade.subject.nombre}</p>
+                        <p>Calificación: {grade.grade}</p>
+                        <p>Descripción: {grade.description}</p>
+                      </li>
+                    </>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
         </div>

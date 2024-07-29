@@ -7,6 +7,7 @@ const initialPeriod: Period = {
   id: null,
   nombre: "",
   año: 0,
+  status: "",
 };
 
 interface Props extends ModalProps<Period> {
@@ -85,6 +86,24 @@ const PeriodModal = (props: Props) => {
                     value={formik.values?.año ?? ""}
                     onChange={formik.handleChange}
                   />
+                </>
+              </div>
+              <div>
+                <>
+                  <label className="text-gray-700 text-sm font-bold mb-2">
+                    * Estado periodo académico
+                  </label>
+
+                  <select
+                    name="status"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    onChange={formik.handleChange}
+                    value={formik.values?.status ?? ""}
+                  >
+                    <option value="">Selecciona el estado del periodo</option>
+                    <option value="Activo">Activo</option>
+                    <option value="Inactivo">Inactivo</option>
+                  </select>
                 </>
               </div>
             </div>
