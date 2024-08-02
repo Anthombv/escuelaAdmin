@@ -76,7 +76,7 @@ const Sidebar = () => {
                   </Link>
                 </div>
               )}
-              {CheckPermissions(auth, [0]) && (
+              {CheckPermissions(auth, [0, 1]) && (
                 <div>
                   <Link href="/teachers/teachers">
                     <button className="w-full">
@@ -104,7 +104,7 @@ const Sidebar = () => {
                   </Link>
                 </div>
               )}
-              {CheckPermissions(auth, [0]) && (
+              {CheckPermissions(auth, [0, 1]) && (
                 <div>
                   <Link href="/period/period">
                     <button className="w-full">
@@ -119,7 +119,7 @@ const Sidebar = () => {
                 </div>
               )}
             </div>
-            {CheckPermissions(auth, [0]) && (
+            {CheckPermissions(auth, [0, 1]) && (
               <div>
                 <Link href="/configuration">
                   <button className="w-full">

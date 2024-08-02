@@ -85,7 +85,14 @@ export default function Home() {
   const [modalContent, setModalContent] = useState([]);
 
   const assignTimeSlots = (data: Course[]) => {
-    const slots = ["08:00 AM", "09:00 AM", "10:00 AM"];
+    const slots = [
+      "Lunes 08:00 AM",
+      "Martes 09:00 AM",
+      "Miercoles 10:00 AM",
+      "Jueves 10:30 AM",
+      "Viernes 11:00 AM",
+      "Martes 11:30 AM",
+    ];
     data.forEach((item, index) => {
       item.subjects.forEach((subject) => {
         if (index < slots.length) {
@@ -160,6 +167,21 @@ export default function Home() {
     }
   };
 
+  const [filtro, setFiltro] = useState({ periodo: "", curso: "", docente: "" });
+  const [reporte, setReporte] = useState([]);
+  const [opciones, setOpciones] = useState({
+    cursos: [],
+    periodos: [],
+    docentes: [],
+    estudiantes: [], // Agregar esta línea
+  });
+
+  const [filtroEstudiante, setFiltroEstudiante] = useState({
+    estudiante: "",
+    periodo: "",
+  });
+  const [reporteEstudiante, setReporteEstudiante] = useState([]);
+
   const loadCalificaciones = async () => {
     try {
       const response = await HttpClient(
@@ -167,9 +189,34 @@ export default function Home() {
         "GET",
         auth.userName,
         auth.role
+      ); // Asegúrate de que esta URL es correcta
+
+      // Suponiendo que los datos están dentro de una propiedad "data" u otra propiedad
+      const data = response.data; // Ajusta según lo que observes en la herramienta de desarrollador
+
+      console.log(data);
+      if (!Array.isArray(data)) {
+        throw new Error(
+          "La data recibida no es un arreglo: " + JSON.stringify(data)
+        );
+      }
+
+      setCalificaciones(data);
+
+      const cursos = Array.from(new Set(data.map((item) => item.course.name)));
+      const periodos = Array.from(
+        new Set(data.map((item) => item.period.nombre))
       );
-      setCalificaciones(response.data);
-      console.log("Calificaciones cargadas:", response.data);
+      const docentes = Array.from(
+        new Set(
+          data.map((item) => `${item.teacher.nombre} ${item.teacher.apellido}`)
+        )
+      );
+      const estudiantes = Array.from(
+        new Set(data.map((item) => item.student.nombre))
+      );
+
+      setOpciones({ cursos, periodos, docentes, estudiantes });
     } catch (error) {
       console.error("Error al cargar calificaciones:", error);
     }
@@ -181,7 +228,39 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleOpenModal = (student, subject, teacher) => {
+  useEffect(() => {
+    if (filtro.periodo && filtro.curso && filtro.docente) {
+      const filtradas = calificaciones.filter(
+        (item) =>
+          item.period.nombre === filtro.periodo &&
+          item.course.name === filtro.curso &&
+          `${item.teacher.nombre} ${item.teacher.apellido}` === filtro.docente
+      );
+      setReporte(filtradas);
+    } else {
+      setReporte([]);
+    }
+  }, [filtro, calificaciones]);
+
+  const handleFiltroChange = (e) => {
+    setFiltro({ ...filtro, [e.target.name]: e.target.value });
+  };
+
+  useEffect(() => {
+    if (filtroEstudiante.estudiante && filtroEstudiante.periodo) {
+      const filtradas = calificaciones.filter(
+        (item) =>
+          `${item.student.nombre}` === filtroEstudiante.estudiante &&
+          item.period.nombre === filtroEstudiante.periodo
+      );
+      setReporteEstudiante(filtradas);
+    } else {
+      setReporteEstudiante([]);
+    }
+  }, [filtroEstudiante, calificaciones]);
+
+  const handleOpenModal = (student, subject, teacher, course) => {
+    console.log("course:", course);
     console.log("Student:", student);
     console.log("Subject:", subject);
     console.log("Teacher:", teacher);
@@ -214,7 +293,7 @@ export default function Home() {
           apellido: modalData.teacher.apellido,
           // Asegúrate de incluir todos los campos necesarios aquí
         },
-        course: { nombre: consolidatedData[0]?.courseName },
+        course: { name: consolidatedData[0]?.courseName },
         period: { nombre: consolidatedData[0]?.periodName }, // Si esto también debe ser un objeto, ajusta según sea necesario
         grade: modalData.grade,
         description: modalData.description,
@@ -296,14 +375,178 @@ export default function Home() {
           </div>
           {CheckPermissions(auth, [0]) && (
             <div>
-              <div className="w-11/12 bg-white mx-auto block p-4">
-                <h3 className="text-xl font-semibold text-center">
-                  Reportes por curso y docentes
-                </h3>
+              <div
+                className="w-11/12 overflow-auto bg-white mx-auto block p-4"
+                style={{
+                  height: "700px",
+                }}
+              >
+                <div className="p-4 ">
+                  <h1 className="text-xl font-semibold mb-4">
+                    Reporte de Calificaciones por curso y docente
+                  </h1>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-gray-700">
+                        Periodo Académico:
+                      </label>
+                      <select
+                        name="periodo"
+                        onChange={handleFiltroChange}
+                        className="mt-1 block w-full p-2 border border-gray-300 rounded"
+                      >
+                        <option value="">Seleccione un periodo</option>
+                        {opciones.periodos.map((periodo) => (
+                          <option key={periodo} value={periodo}>
+                            {periodo}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-gray-700">Curso:</label>
+                      <select
+                        name="curso"
+                        onChange={handleFiltroChange}
+                        className="mt-1 block w-full p-2 border border-gray-300 rounded"
+                      >
+                        <option value="">Seleccione un curso</option>
+                        {opciones.cursos.map((curso) => (
+                          <option key={curso} value={curso}>
+                            {curso}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-gray-700">Docente:</label>
+                      <select
+                        name="docente"
+                        onChange={handleFiltroChange}
+                        className="mt-1 block w-full p-2 border border-gray-300 rounded"
+                      >
+                        <option value="">Seleccione un docente</option>
+                        {opciones.docentes.map((docente) => (
+                          <option key={docente} value={docente}>
+                            {docente}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {reporte.length > 0 && (
+                    <div className="space-y-4">
+                      {reporte.map((item) => (
+                        <div
+                          key={item._id}
+                          className="p-4 border border-gray-300 rounded shadow-sm"
+                        >
+                          <h2 className="text-lg font-bold">
+                            {item.student.nombre}
+                          </h2>
+                          <p>
+                            <strong>Materia:</strong> {item.subject.nombre}
+                          </p>
+                          <p>
+                            <strong>Docente:</strong> {item.teacher.nombre}{" "}
+                            {item.teacher.apellido}
+                          </p>
+                          <p>
+                            <strong>Curso:</strong> {item.course.name}
+                          </p>
+                          <p>
+                            <strong>Periodo:</strong> {item.period.nombre}
+                          </p>
+                          <p>
+                            <strong>Calificación:</strong> {item.grade}
+                          </p>
+                          <p>
+                            <strong>Bimestre:</strong> {item.term}
+                          </p>
+                          <p>
+                            <strong>Descripción:</strong> {item.description}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                <h3 className="text-xl font-semibold text-center">
-                  Reportes por estudiantes
-                </h3>
+                  <h1 className="text-xl font-semibold mb-4">
+                    Reporte de academico por estudiante
+                  </h1>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-gray-700">Estudiante:</label>
+                      <select
+                        name="estudiante"
+                        onChange={(e) =>
+                          setFiltroEstudiante({
+                            ...filtroEstudiante,
+                            estudiante: e.target.value,
+                          })
+                        }
+                        className="mt-1 block w-full p-2 border border-gray-300 rounded"
+                      >
+                        <option value="">Seleccione un estudiante</option>
+                        {opciones.estudiantes.map((estudiante) => (
+                          <option key={estudiante} value={estudiante}>
+                            {estudiante}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-700">Periodo:</label>
+                      <select
+                        name="periodo"
+                        onChange={(e) =>
+                          setFiltroEstudiante({
+                            ...filtroEstudiante,
+                            periodo: e.target.value,
+                          })
+                        }
+                        className="mt-1 block w-full p-2 border border-gray-300 rounded"
+                      >
+                        <option value="">Seleccione un periodo</option>
+                        {opciones.periodos.map((periodo) => (
+                          <option key={periodo} value={periodo}>
+                            {periodo}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {reporteEstudiante.length > 0 && (
+                      <div className="space-y-4">
+                        {reporteEstudiante.map((item) => (
+                          <div
+                            key={item._id}
+                            className="p-4 border border-gray-300 rounded shadow-sm"
+                          >
+                            <h2 className="text-lg font-bold">
+                              Materia: {item.subject.nombre}
+                            </h2>
+                            <p>
+                              <strong>Docente:</strong> {item.teacher.nombre}{" "}
+                              {item.teacher.apellido}
+                            </p>
+                            <p>
+                              <strong>Calificación:</strong> {item.grade}
+                            </p>
+                            <p>
+                              <strong>Bimestre:</strong> {item.term}
+                            </p>
+                            <p>
+                              <strong>Descripción:</strong> {item.description}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div></div>
+                </div>
               </div>
             </div>
           )}
@@ -386,6 +629,7 @@ export default function Home() {
                                         <button
                                           onClick={() =>
                                             handleOpenModal(
+                                              course,
                                               student,
                                               subject,
                                               subject.profesor[0]

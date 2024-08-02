@@ -93,6 +93,7 @@ const UsersPanel = () => {
         auth.userName,
         auth.role
       );
+      toast.success("Usuario eliminado correctamente")
       await loadData();
     },
   };
